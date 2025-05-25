@@ -1,6 +1,6 @@
 'use client';
 
-import Results from '@/components/Results';
+import Results from '../components/Results';
 import { useEffect, useState } from 'react';
 
 import { useUser } from '@clerk/nextjs';
