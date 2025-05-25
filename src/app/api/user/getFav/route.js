@@ -1,6 +1,6 @@
 import User from '@/lib/models/user.model';
 import { connect } from '@/lib/mongodb/mongoose';
-import { currentUser } from '@clerk/nextjs/server';
+import { currentUser } from '@clerk/nextjs/dist/types/server';
 
 export const PUT = async (req) => {
   const user = await currentUser();
