@@ -2,8 +2,7 @@ import AddToFav from '@/app/components/AddToFav';
 import Link from 'next/link';
 
 export default async function MoviePage({ params }) {
-  const { id: movieId } =  params;
-  
+  const { id: movieId } = await params;
   const res = await fetch(
     `https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.API_KEY}`
   );
