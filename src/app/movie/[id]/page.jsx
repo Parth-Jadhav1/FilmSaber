@@ -1,31 +1,30 @@
-
 import AddToFav from '@/app/components/AddToFav';
 import Link from 'next/link';
 
-export async function getServerSideProps(context) {
-  const { id: movieId } = context.params;
+export default async function MoviePage({ params }) {
+  const { id: movieId } = params;
 
   const res = await fetch(
-    `https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.API_KEY}`
+    `https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.NEXT_PUBLIC_API_KEY}`
   );
 
   if (!res.ok) {
-    return {
-      notFound: true,
-    };
+    return (
+      <div className='text-center mt-10'>
+        <h1 className='text-xl my-5'>
+          Movie details are not available at the moment!
+        </h1>
+        <p>
+          <Link href='/' className='hover:text-amber-600'>
+            Go Home
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   const movie = await res.json();
 
-  return {
-    props: {
-      movie,
-      movieId,
-    },
-  };
-}
-
-export default function MoviePage({ movie, movieId }) {
   return (
     <div className='w-full'>
       <div className='p-4 md:pt-8 flex flex-col md:flex-row content-center max-w-6xl mx-auto md:space-x-6'>
@@ -34,7 +33,6 @@ export default function MoviePage({ movie, movieId }) {
             movie.backdrop_path || movie.poster_path
           }`}
           className='rounded-lg w-full md:w-96 h-56 object-cover'
-          alt={movie.title || movie.name}
         />
         <div className='p-2'>
           <h2 className='text-lg mb-3 font-bold'>
