@@ -1,62 +1,57 @@
-'use client';
+import User from '@/lib/models/user.model';
+import { connect } from '@/lib/mongodb/mongoose';
+import { clerkClient, currentUser } from '@clerk/nextjs/server';
 
-import Results from '@/app/components/Results';
-import { useEffect, useState } from 'react';
-
-import { useUser } from '@clerk/nextjs';
-
-export default function Favorites() {
-  const [results, setResults] = useState(null);
-  const { isSignedIn, user, isLoaded } = useUser();
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/user/getFav', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setResults(data.favs);
-        }
-      } catch (error) {
-        console.error('Error:', error);
-      }
-    };
-    if (isLoaded && isSignedIn && user) {
-      fetchData();
+export const PUT = async (req) => {
+  const user = await currentUser();
+  const client = await clerkClient();
+  try {
+    await connect();
+    const data = await req.json();
+    if (!user) {
+      return { status: 401, body: 'Unauthorized' };
     }
-  }, []);
-
-  if (!isSignedIn) {
-    return (
-      <div className='text-center mt-10'>
-        <h1 className='text-xl my-5'>Please sign in to view your favorites</h1>
-      </div>
-    );
+    const existingUser = await User.findById(user.publicMetadata.userMongoId);
+    if (existingUser.favs.some((fav) => fav.movieId === data.movieId)) {
+      const updatedUser = await User.findByIdAndUpdate(
+        user.publicMetadata.userMongoId,
+        { $pull: { favs: { movieId: data.movieId } } },
+        { new: true }
+      );
+      const updatedFavs = updatedUser.favs.map((fav) => fav.movieId);
+      await client.users.updateUserMetadata(user.id, {
+        publicMetadata: {
+          favs: updatedFavs,
+        },
+      });
+      return new Response(JSON.stringify(updatedUser), { status: 200 });
+    } else {
+      const updatedUser = await User.findByIdAndUpdate(
+        user.publicMetadata.userMongoId,
+        {
+          $addToSet: {
+            favs: {
+              movieId: data.movieId,
+              title: data.title,
+              description: data.overview,
+              dateReleased: data.releaseDate,
+              rating: data.voteCount,
+              image: data.image,
+            },
+          },
+        },
+        { new: true }
+      );
+      const updatedFavs = updatedUser.favs.map((fav) => fav.movieId);
+      await client.users.updateUserMetadata(user.id, {
+        publicMetadata: {
+          favs: updatedFavs,
+        },
+      });
+      return new Response(JSON.stringify(updatedUser), { status: 200 });
+    }
+  } catch (error) {
+    console.log('Error adding favs to the user:', error);
+    return new Response('Error adding favs to the user', { status: 500 });
   }
-
-  return (
-    <div>
-      {!results ||
-        (results.length === 0 && (
-          <h1 className='text-center pt-6'>No results found</h1>
-        ))}
-      {results && results.length !== 0 && (
-        <Results
-          results={results.map((result) => ({
-            ...result,
-            id: result.movieId,
-            title: result.title,
-            backdrop_path: result.image,
-            overview: result.description,
-            first_air_date: result.dateReleased.substring(0, 10),
-            vote_count: result.rating,
-          }))}
-        />
-      )}
-    </div>
-  );
-}
+};
