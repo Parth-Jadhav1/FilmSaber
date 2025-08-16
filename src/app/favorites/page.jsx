@@ -21,7 +21,9 @@ export default function Favorites() {
           const data = await res.json();
           setResults(data.favs);
         }
-      } catch (error) {
+      } 
+      
+      catch (error) {
         console.error('Error:', error);
       }
     };
